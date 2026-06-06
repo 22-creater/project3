@@ -143,30 +143,23 @@ if st.session_state.my_table:
     urgency    = ("⚠️ 곧 자동 해제됩니다!" if remaining < 180
                   else "⏳ 시간이 얼마 남지 않았습니다" if remaining < 300 else "")
 
-    urgency_html = (
-        f"&nbsp;&nbsp;<span style='font-size:12px;font-weight:600;color:{bar_color};'>{urgency}</span>"
-        if urgency else ""
-    )
     zone_label = ZONES[zk]['label'].split()[1]
-    st.markdown(f"""
-    <div class="timer-wrap">
-      <div style="display:flex;justify-content:space-between;align-items:center;">
-        <div>
-          <span style="font-size:15px;font-weight:700;color:#2C2C2A;">
-            ✅ {tid}번 테이블 · {zone_label} · {tbl_info['seats']}인석
-          </span><br>
-          <span style="font-size:12px;color:#888;">예약 시각: {t_time}</span>
-          {urgency_html}
-        </div>
-        <div style="text-align:right;">
-          <span style="font-size:28px;font-weight:800;color:{bar_color};">{mins:02d}:{secs:02d}</span><br>
-          <span style="font-size:11px;color:#888;">남은 시간</span>
-        </div>
-      </div>
-      <div class="timer-bar-bg">
-        <div class="timer-bar-fill" style="width:{pct:.1f}%;background:{bar_color};"></div>
-      </div>
-    </div>""", unsafe_allow_html=True)
+    with st.container(border=True):
+        left_col, right_col = st.columns([3, 1])
+        with left_col:
+            st.markdown(f"**✅ {tid}번 테이블 · {zone_label} · {tbl_info['seats']}인석**")
+            st.caption(f"예약 시각: {t_time}")
+            if urgency:
+                color_name = "red" if remaining < 180 else "orange"
+                st.markdown(f":{color_name}[{urgency}]")
+        with right_col:
+            st.markdown(
+                f"<div style='text-align:right;'>"
+                f"<span style='font-size:28px;font-weight:800;color:{bar_color};'>{mins:02d}:{secs:02d}</span><br>"
+                f"<span style='font-size:11px;color:#888;'>남은 시간</span></div>",
+                unsafe_allow_html=True
+            )
+        st.progress(int(pct))
 
     if st.button("🗑 예약 취소", key="cancel_top"):
         cancel_seat(tid, user_id)

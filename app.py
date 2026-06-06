@@ -290,7 +290,8 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-# ── 자동 새로고침 (3초, 타이머는 JS가 독립적으로 카운트다운) ──
-st.markdown("<script>setTimeout(()=>window.location.reload(),3000);</script>",
-            unsafe_allow_html=True)
+# ── 자동 새로고침 (3초마다 rerun) ───────────────────────────
+import time
 st.caption(f"👤 {user_id}  |  갱신: {now.strftime('%H:%M:%S')}")
+time.sleep(3)
+st.rerun()

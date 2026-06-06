@@ -1,5 +1,5 @@
 import streamlit as st
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from db import get_all_reservations, reserve_seat, cancel_seat, init_db, LIMIT_MINUTES
 
 st.set_page_config(page_title="학생 식당 자리 예약", page_icon="🍽", layout="wide")
@@ -92,14 +92,15 @@ if st.session_state.my_table is None:
         if "__" not in tid and val == user_id:
             st.session_state.my_table = tid
             break
-
-now = datetime.now()
+KST = timezone(timedelta(hours=9))
+now = datetime.now(KST)
 
 # ── 헤더 ──────────────────────────────────────────────────────
 c1, c2 = st.columns([3, 1])
 with c1:
     st.markdown("## 🍽 학생 식당 자리 예약")
     st.caption(f"{now.year}년 {now.month}월 {now.day}일  ·  예약 후 {LIMIT_MINUTES}분 초과 시 자동 해제  ·  학번: {user_id}")
+  
 with c2:
     st.markdown(
         f"<div style='text-align:right;padding-top:8px;'>"

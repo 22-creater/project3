@@ -1,0 +1,10 @@
+# Streamlit secrets — 절대 GitHub에 올리지 마세요
+.streamlit/secrets.toml
+secrets.toml
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.env
+venv/

@@ -81,9 +81,6 @@ def get_all_reservations() -> dict:
 
 
 def reserve_seat(table_id: str, user_id: str) -> bool:
-    """
-    자리 예약 시도. PK 충돌 시 False (동시성 보호).
-    """
     client = _get_client()
     try:
         client.table("reservations").insert({
@@ -92,7 +89,9 @@ def reserve_seat(table_id: str, user_id: str) -> bool:
             "reserved_at": datetime.now(timezone.utc).isoformat(),
         }).execute()
         return True
-    except Exception:
+    except Exception as e:
+        import streamlit as st
+        st.error(f"예약 실패 오류: {e}")
         return False
 
 

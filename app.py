@@ -1,6 +1,10 @@
 import streamlit as st
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from db import get_all_reservations, reserve_seat, cancel_seat, init_db, LIMIT_MINUTES
+
+KST = timezone(timedelta(hours=9))
+
+now = datetime.now(KST)
 
 st.set_page_config(page_title="학생 식당 자리 예약", page_icon="🍽", layout="wide")
 

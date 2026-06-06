@@ -90,8 +90,6 @@ def reserve_seat(table_id: str, user_id: str) -> bool:
         }).execute()
         return True
     except Exception as e:
-        import streamlit as st
-        st.error(f"예약 실패 오류: {e}")
         return False
 
 

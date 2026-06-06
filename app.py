@@ -1,7 +1,6 @@
 import streamlit as st
 from datetime import datetime
 from db import get_all_reservations, reserve_seat, cancel_seat, init_db, LIMIT_MINUTES
-import uuid
 
 st.set_page_config(page_title="학생 식당 자리 예약", page_icon="🍽", layout="wide")
 
@@ -26,12 +25,11 @@ st.markdown("""
     background:#fff; border:1.5px solid #1D9E75;
     border-radius:12px; padding:20px 24px; margin-bottom:16px;
   }
-  /* 자리 카드 버튼 */
-  .seat-btn {
-    width:100%; padding:10px 4px; border-radius:10px;
-    font-size:13px; font-weight:600; text-align:center;
-    border:2px solid; cursor:pointer; line-height:1.6;
-    display:block; margin-bottom:4px;
+  .login-box {
+    background:#fff; border:1px solid #E0DED8;
+    border-radius:16px; padding:40px;
+    max-width:400px; margin:80px auto;
+    text-align:center;
   }
 </style>
 """, unsafe_allow_html=True)
@@ -50,24 +48,48 @@ ZONES = {
 TOTAL_SEC = LIMIT_MINUTES * 60
 
 # ── 세션 초기화 ────────────────────────────────────────────────
-if "user_id"      not in st.session_state: st.session_state.user_id      = str(uuid.uuid4())[:8]
+if "student_id"   not in st.session_state: st.session_state.student_id   = None
 if "my_table"     not in st.session_state: st.session_state.my_table     = None
 if "selected_tbl" not in st.session_state: st.session_state.selected_tbl = None
 
-# ── DB 로드 ───────────────────────────────────────────────────
+# ── 로그인 화면 ───────────────────────────────────────────────
+if not st.session_state.student_id:
+    st.markdown("""
+    <div class="login-box">
+      <div style="font-size:48px;margin-bottom:8px;">🍽</div>
+      <div style="font-size:22px;font-weight:700;color:#2C2C2A;margin-bottom:6px;">학생 식당 자리 예약</div>
+      <div style="font-size:14px;color:#888;margin-bottom:28px;">학번을 입력하면 새로고침해도<br>내 자리가 유지됩니다</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    col_l, col_m, col_r = st.columns([1, 2, 1])
+    with col_m:
+        student_input = st.text_input(
+            "학번 입력",
+            placeholder="예: 20241234",
+            max_chars=20,
+            label_visibility="collapsed"
+        )
+        if st.button("입장하기 →", type="primary", use_container_width=True):
+            if student_input.strip():
+                st.session_state.student_id = student_input.strip()
+                st.rerun()
+            else:
+                st.warning("학번을 입력해주세요!")
+    st.stop()
+
+# ── 여기서부터 로그인된 사용자만 ──────────────────────────────
+user_id = st.session_state.student_id
+
 init_db()
 reservations = get_all_reservations()
-
-# 디버깅용 임시 코드
-st.write("내 user_id:", st.session_state.user_id)
-st.write("reservations:", reservations)
 
 # 내 예약 DB 동기화
 if st.session_state.my_table and st.session_state.my_table not in reservations:
     st.session_state.my_table = None
 if st.session_state.my_table is None:
     for tid, val in reservations.items():
-        if "__" not in tid and val == st.session_state.user_id:
+        if "__" not in tid and val == user_id:
             st.session_state.my_table = tid
             break
 
@@ -77,13 +99,22 @@ now = datetime.now()
 c1, c2 = st.columns([3, 1])
 with c1:
     st.markdown("## 🍽 학생 식당 자리 예약")
-    st.caption(f"{now.year}년 {now.month}월 {now.day}일  ·  예약 후 {LIMIT_MINUTES}분 초과 시 자동 해제")
+    st.caption(f"{now.year}년 {now.month}월 {now.day}일  ·  예약 후 {LIMIT_MINUTES}분 초과 시 자동 해제  ·  학번: {user_id}")
 with c2:
     st.markdown(
         f"<div style='text-align:right;padding-top:8px;'>"
         f"<span style='font-size:22px;font-weight:700;color:#1D9E75;'>🕐 {now.strftime('%H:%M:%S')}</span><br>"
         f"<span style='font-size:12px;color:#888;'>자동 갱신: 3초마다</span></div>",
         unsafe_allow_html=True)
+
+# 로그아웃 버튼
+with st.sidebar:
+    st.markdown(f"**👤 학번:** {user_id}")
+    if st.button("🚪 로그아웃", use_container_width=True):
+        st.session_state.student_id   = None
+        st.session_state.my_table     = None
+        st.session_state.selected_tbl = None
+        st.rerun()
 
 st.divider()
 
@@ -92,10 +123,10 @@ total = sum(len(z["tables"]) for z in ZONES.values())
 taken = sum(1 for k in reservations if "__" not in k)
 avail = total - taken
 m1, m2, m3, m4 = st.columns(4)
-m1.metric("🟢 예약 가능",    avail)
-m2.metric("🔴 사용 중",      taken)
-m3.metric("📋 전체 테이블",  total)
-m4.metric("✅ 내 자리",      1 if st.session_state.my_table else 0)
+m1.metric("🟢 예약 가능",   avail)
+m2.metric("🔴 사용 중",     taken)
+m3.metric("📋 전체 테이블", total)
+m4.metric("✅ 내 자리",     1 if st.session_state.my_table else 0)
 
 st.divider()
 
@@ -133,7 +164,7 @@ if st.session_state.my_table:
     </div>""", unsafe_allow_html=True)
 
     if st.button("🗑 예약 취소", key="cancel_top"):
-        cancel_seat(tid, st.session_state.user_id)
+        cancel_seat(tid, user_id)
         st.session_state.my_table     = None
         st.session_state.selected_tbl = None
         st.rerun()
@@ -154,6 +185,8 @@ if sel and sel != st.session_state.my_table:
             <td style="font-weight:600;color:#2C2C2A;">{ZONES[zk]['label']}</td></tr>
         <tr><td style="color:#888;padding:4px 0;">좌석 수</td>
             <td style="font-weight:600;color:#2C2C2A;">{tbl_info['seats']}인석</td></tr>
+        <tr><td style="color:#888;padding:4px 0;">예약 학번</td>
+            <td style="font-weight:600;color:#2C2C2A;">{user_id}</td></tr>
         <tr><td style="color:#888;padding:4px 0;">예약 시각</td>
             <td style="font-weight:600;color:#2C2C2A;">{now.strftime('%H:%M:%S')}</td></tr>
       </table>
@@ -163,8 +196,8 @@ if sel and sel != st.session_state.my_table:
     with bc1:
         if st.button("✅ 예약 확정", key="confirm_btn", type="primary"):
             if st.session_state.my_table:
-                cancel_seat(st.session_state.my_table, st.session_state.user_id)
-            ok = reserve_seat(sel, st.session_state.user_id)
+                cancel_seat(st.session_state.my_table, user_id)
+            ok = reserve_seat(sel, user_id)
             if ok:
                 st.session_state.my_table     = sel
                 st.session_state.selected_tbl = None
@@ -178,11 +211,10 @@ if sel and sel != st.session_state.my_table:
             st.rerun()
     st.divider()
 
-# ── 좌석 배치도 (HTML 카드 + st.button 클릭 혼합) ─────────────
+# ── 좌석 배치도 ───────────────────────────────────────────────
 st.markdown("### 좌석 배치도")
 st.caption("자리를 클릭하면 상세 정보가 표시됩니다")
 
-# HTML로 시각적 카드 렌더링, st.button으로 클릭 이벤트 처리
 for zone_key, zone_info in ZONES.items():
     st.markdown(f"**{zone_info['label']}**")
     tables = zone_info["tables"]
@@ -201,8 +233,7 @@ for zone_key, zone_info in ZONES.items():
 
             tid = tbl["id"]
 
-            # 상태 판단
-            if reservations.get(tid) == st.session_state.user_id:
+            if reservations.get(tid) == user_id:
                 status = "mine"
             elif tid in [k for k in reservations if "__" not in k]:
                 status = "taken"
@@ -212,7 +243,6 @@ for zone_key, zone_info in ZONES.items():
             rem = reservations.get(f"{tid}__remaining", 0)
             m, s = divmod(rem, 60)
 
-            # 색상 세트
             if status == "mine":
                 bg, fg, bc = "#1D9E75", "#ffffff", "#0F6E56"
                 icon  = "✅"
@@ -227,13 +257,12 @@ for zone_key, zone_info in ZONES.items():
                 timer = "예약하기"
 
             with col:
-                # 시각적 카드 (HTML)
                 st.markdown(f"""
                 <div style="
                   background:{bg}; color:{fg}; border:2px solid {bc};
                   border-radius:10px; padding:10px 6px; text-align:center;
                   font-size:13px; font-weight:600; line-height:1.7;
-                  margin-bottom:2px; pointer-events:none;
+                  margin-bottom:2px;
                 ">
                   {icon} {tid}<br>
                   {tbl['seats']}인석<br>
@@ -241,24 +270,17 @@ for zone_key, zone_info in ZONES.items():
                 </div>
                 """, unsafe_allow_html=True)
 
-                # 투명 클릭 버튼 (카드 아래 작게)
                 if status != "taken":
                     clicked = st.button(
-                        "선택" if status == "avail" else "내 자리",
+                        "선택" if status == "avail" else "내 자리 ✅",
                         key=f"tbl_{tid}",
                         use_container_width=True
                     )
                     if clicked:
-                        if status == "mine":
-                            st.session_state.selected_tbl = None
-                        else:
-                            st.session_state.selected_tbl = tid
+                        st.session_state.selected_tbl = None if status == "mine" else tid
                         st.rerun()
                 else:
-                    st.markdown(
-                        "<div style='height:36px;'></div>",
-                        unsafe_allow_html=True
-                    )
+                    st.markdown("<div style='height:36px;'></div>", unsafe_allow_html=True)
 
     st.markdown("<br>", unsafe_allow_html=True)
 
@@ -274,4 +296,4 @@ st.markdown("""
 # ── 자동 새로고침 ─────────────────────────────────────────────
 st.markdown("<script>setTimeout(()=>window.location.reload(),3000);</script>",
             unsafe_allow_html=True)
-st.caption(f"🆔 세션: `{st.session_state.user_id}`  |  갱신: {now.strftime('%H:%M:%S')}")
+st.caption(f"👤 {user_id}  |  갱신: {now.strftime('%H:%M:%S')}")

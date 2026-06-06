@@ -143,15 +143,20 @@ if st.session_state.my_table:
     urgency    = ("⚠️ 곧 자동 해제됩니다!" if remaining < 180
                   else "⏳ 시간이 얼마 남지 않았습니다" if remaining < 300 else "")
 
+    urgency_html = (
+        f"&nbsp;&nbsp;<span style='font-size:12px;font-weight:600;color:{bar_color};'>{urgency}</span>"
+        if urgency else ""
+    )
+    zone_label = ZONES[zk]['label'].split()[1]
     st.markdown(f"""
     <div class="timer-wrap">
       <div style="display:flex;justify-content:space-between;align-items:center;">
         <div>
           <span style="font-size:15px;font-weight:700;color:#2C2C2A;">
-            ✅ {tid}번 테이블 · {ZONES[zk]['label'].split()[1]} · {tbl_info['seats']}인석
+            ✅ {tid}번 테이블 · {zone_label} · {tbl_info['seats']}인석
           </span><br>
           <span style="font-size:12px;color:#888;">예약 시각: {t_time}</span>
-          {"&nbsp;&nbsp;<span style='font-size:12px;font-weight:600;color:"+bar_color+";'>"+urgency+"</span>" if urgency else ""}
+          {urgency_html}
         </div>
         <div style="text-align:right;">
           <span style="font-size:28px;font-weight:800;color:{bar_color};">{mins:02d}:{secs:02d}</span><br>

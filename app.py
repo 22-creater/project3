@@ -58,6 +58,10 @@ if "selected_tbl" not in st.session_state: st.session_state.selected_tbl = None
 init_db()
 reservations = get_all_reservations()
 
+# 디버깅용 임시 코드
+st.write("내 user_id:", st.session_state.user_id)
+st.write("reservations:", reservations)
+
 # 내 예약 DB 동기화
 if st.session_state.my_table and st.session_state.my_table not in reservations:
     st.session_state.my_table = None

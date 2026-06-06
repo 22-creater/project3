@@ -144,69 +144,21 @@ if st.session_state.my_table:
                   else "⏳ 시간이 얼마 남지 않았습니다" if remaining < 300 else "")
 
     zone_label = ZONES[zk]['label'].split()[1]
-    # JS로 실시간 카운트다운 (서버 요청 없이 브라우저에서 1초마다 업데이트)
-    st.markdown(f"""
-    <div style="background:#fff;border:1px solid #E0DED8;border-radius:12px;padding:18px 22px;margin-bottom:8px;">
-      <div style="display:flex;justify-content:space-between;align-items:center;">
-        <div>
-          <div style="font-size:15px;font-weight:700;color:#2C2C2A;">
-            ✅ {tid}번 테이블 · {zone_label} · {tbl_info['seats']}인석
-          </div>
-          <div style="font-size:12px;color:#888;margin-top:4px;">예약 시각: {t_time}</div>
-          <div id="urgency-msg" style="font-size:12px;font-weight:600;margin-top:2px;"></div>
-        </div>
-        <div style="text-align:right;">
-          <div id="timer-display" style="font-size:32px;font-weight:800;color:#1D9E75;font-variant-numeric:tabular-nums;">
-            {mins:02d}:{secs:02d}
-          </div>
-          <div style="font-size:11px;color:#888;">남은 시간</div>
-        </div>
-      </div>
-      <div style="background:#E0DED8;border-radius:99px;height:10px;width:100%;margin-top:12px;">
-        <div id="timer-bar" style="height:10px;border-radius:99px;background:#1D9E75;width:{pct:.1f}%;transition:width 1s linear;"></div>
-      </div>
-    </div>
-    <script>
-    (function() {{
-      var remaining = {remaining};
-      var total = {TOTAL_SEC};
-      var display = document.getElementById('timer-display');
-      var bar = document.getElementById('timer-bar');
-      var msg = document.getElementById('urgency-msg');
-
-      function updateTimer() {{
-        if (!display) return;
-        var m = Math.floor(remaining / 60);
-        var s = remaining % 60;
-        var timeStr = (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
-        var pct = (remaining / total) * 100;
-
-        var color = remaining < 180 ? '#E24B4A' : remaining < 300 ? '#E8952A' : '#1D9E75';
-        display.textContent = timeStr;
-        display.style.color = color;
-        bar.style.width = pct + '%';
-        bar.style.background = color;
-
-        if (remaining < 180) {{
-          msg.textContent = '⚠️ 곧 자동 해제됩니다!';
-          msg.style.color = '#E24B4A';
-        }} else if (remaining < 300) {{
-          msg.textContent = '⏳ 시간이 얼마 남지 않았습니다';
-          msg.style.color = '#E8952A';
-        }} else {{
-          msg.textContent = '';
-        }}
-
-        if (remaining > 0) {{
-          remaining--;
-          setTimeout(updateTimer, 1000);
-        }}
-      }}
-
-      setTimeout(updateTimer, 1000);
-    }})();
-    </script>
-    """, unsafe_allow_html=True)
+    zone_label = ZONES[zk]['label'].split()[1]
+    with st.container(border=True):
+        col_l, col_r = st.columns([3, 1])
+        with col_l:
+            st.markdown(f"**✅ {tid}번 테이블 · {zone_label} · {tbl_info['seats']}인석**")
+            st.caption(f"예약 시각: {t_time}")
+            if remaining < 180:
+                st.error("⚠️ 곧 자동 해제됩니다!")
+            elif remaining < 300:
+                st.warning("⏳ 시간이 얼마 남지 않았습니다")
+        with col_r:
+            timer_color = "red" if remaining < 180 else "orange" if remaining < 300 else "green"
+            st.markdown(f"### :{timer_color}[{mins:02d}:{secs:02d}]")
+            st.caption("남은 시간")
+        st.progress(int(pct))
 
     if st.button("🗑 예약 취소", key="cancel_top"):
         cancel_seat(tid, user_id)

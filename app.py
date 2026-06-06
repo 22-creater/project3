@@ -58,7 +58,7 @@ if not st.session_state.student_id:
     <div class="login-box">
       <div style="font-size:48px;margin-bottom:8px;">🍽</div>
       <div style="font-size:22px;font-weight:700;color:#2C2C2A;margin-bottom:6px;">학생 식당 자리 예약</div>
-      <div style="font-size:14px;color:#888;margin-bottom:28px;">학번을 입력하면 새로고침해도<br>내 자리가 유지됩니다</div>
+      <div style="font-size:14px;color:#888;margin-bottom:28px;">학번을 입력해주세요.</div>
     </div>
     """, unsafe_allow_html=True)
 
